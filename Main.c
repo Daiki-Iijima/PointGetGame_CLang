@@ -4,61 +4,74 @@
 #include <conio.h>
 #include <time.h>
 
+typedef struct
+{
+	int X;
+	int Y;
+}Point;
+
 void InitBord();
-void GetKey(int*, int*);
-void EnemyUpdate(int*, int*);
+void GetKey(Point*);
 void CreatePoint(int);
-void BordUpdate(int, int, int, int);
+void BordUpdate(Point);
 void Draw();
 
 #define BORD '+'
 #define PLAYER 'P'
-#define ENEMY 'E'
 #define POINT 'U'
 #define HEIGHT 10
 #define WIDTH 10
 
-char BordMap[HEIGHT][WIDTH];
+char BordMap[WIDTH][HEIGHT];
 int Count;
 int ClearFlag = 0;
 
+
 int main()
 {
-	int PlayerHeightPoint = 0;
-	int PlayerWidthPoint = 0;
-	int EnemyHeightPoint = 0;
-	int EnemyWidthPoint = 0;
-	int PointHeightPoint = 0;
-	int PointWidthPoint = 0;
+	Point PlayerPoint = {0,0};
+	Point ScorePoint[10];
 
-	InitBord();									//	初期化
-	CreatePoint(10);
+	InitBord(PlayerPoint);							//	初期化
+	BordMap[PlayerPoint.X][PlayerPoint.Y] = PLAYER;	//	初期配置
+	CreatePoint(10);								//	スコアを配置
+	Draw();											//	描画
+
 
 	//	メインループ
 	for (;;)
 	{
+		GetKey(&PlayerPoint);		//	キー入力を取得
+
+		//	ポイントを獲得する
+		if (BordMap[PlayerPoint.X][PlayerPoint.Y] == POINT)
+		{
+			Count++;
+		}
+
+		BordUpdate(PlayerPoint);		//	ボードの情報を
+
 		//	クリアチェック
 		int _h, _w, _c = 0;
 		for (_h = 0; _h < HEIGHT; _h++)
 		{
 			for (_w = 0; _w < WIDTH; _w++)
 			{
-				if (BordMap[_h][_w] == POINT) _c++;
+				if (BordMap[_w][_h] == POINT) _c++;
 			}
 		}
 
-		if (_c == 0) { ClearFlag = 1; }
+		if (_c == 0) { 
+			
+			ClearFlag = 1;
 
-		GetKey(&PlayerHeightPoint, &PlayerWidthPoint);		//	キー入力を取得
-		EnemyUpdate(&EnemyHeightPoint, &EnemyWidthPoint);
-
-		//	ポイントを獲得する
-		if (BordMap[PlayerHeightPoint][PlayerWidthPoint] == POINT)
-		{
-			Count++;
+			InitBord(PlayerPoint);							//	初期化
+			BordMap[PlayerPoint.X][PlayerPoint.Y] = PLAYER;	//	初期配置
+			CreatePoint(10);								//	スコアを配置
+		
 		}
 
-		BordUpdate(PlayerHeightPoint, PlayerWidthPoint, EnemyHeightPoint, EnemyWidthPoint);		//	ボードの情報を
+
 		Draw();									//	描画
 	}
 }
@@ -70,30 +83,25 @@ void InitBord()
 	{
 		for (_w = 0; _w < WIDTH; _w++)
 		{
-			BordMap[_h][_w] = BORD;		//	ボードを描画
+			BordMap[_w][_h] = BORD;		//	ボードを初期値で埋める
 		}
 	}
-
-	BordMap[0][0] = PLAYER;			//	初期配置
-	BordMap[3][3] = ENEMY;
-
-	Draw();
 }
 
-void GetKey(int* h, int* w)
+void GetKey(Point *playerPos)
 {
 	switch (getch()) {
 	case 72:    // key up
-		*h = *h - 1;
+		playerPos->Y = playerPos->Y - 1;
 		break;
 	case 80:    // key down
-		*h = *h + 1;
+		playerPos->Y = playerPos->Y + 1;
 		break;
 	case 77:    // key right
-		*w = *w + 1;
+		playerPos->X = playerPos->X + 1;
 		break;
 	case 75:    // key left
-		*w = *w - 1;
+		playerPos->X = playerPos->X - 1;
 		break;
 	default:
 		return;
@@ -101,22 +109,10 @@ void GetKey(int* h, int* w)
 	}
 
 	//	移動の上限を設定
-	if (*h < 0) *h = 0;
-	if (*w < 0) *w = 0;
-	if (*h > HEIGHT - 1)*h = HEIGHT - 1;
-	if (*w > WIDTH - 1) *w = WIDTH - 1;
-}
-
-void EnemyUpdate(int* h, int* w)
-{
-	// 生成した乱数を入れる
-	int r;
-
-	//  乱数の初期化
-	srand((unsigned)time(NULL));
-
-	*h = rand() % (10 + 1);
-	*w = rand() % (10 + 1);
+	if (playerPos->Y < 0) playerPos->Y = 0;
+	if (playerPos->X < 0) playerPos->X = 0;
+	if (playerPos->Y > HEIGHT - 1)playerPos->Y = HEIGHT - 1;
+	if (playerPos->X > WIDTH - 1) playerPos->X = WIDTH - 1;
 }
 
 void CreatePoint(int createPoint)
@@ -129,43 +125,56 @@ void CreatePoint(int createPoint)
 
 	for (int i = 0; i < createPoint; i++)
 	{
-		BordMap[rand() % (10 + 1)][rand() % (10 + 1)] = POINT;
+		BordMap[rand() % (WIDTH + 1)][rand() % (HEIGHT + 1)] = POINT;
 	}
 }
 
-void BordUpdate(int ph, int pw, int eh, int ew)
+void BordUpdate(Point player)
 {
 	int _h, _w;
 
-	BordMap[ph][pw] = PLAYER;					//	プレイヤーの位置を更新
-	BordMap[eh][ew] = ENEMY;					//	敵の位置を更新
+	BordMap[player.X][player.Y] = PLAYER;					//	プレイヤーの位置を更新
 
 	for (_h = 0; _h < HEIGHT; _h++)
 	{
 		for (_w = 0; _w < WIDTH; _w++)
 		{
-			if (_w == pw && _h == ph) continue;
-			if (_w == ew && _h == eh) continue;
-			if (BordMap[_h][_w] == POINT) continue;
+			if (_w == player.X && _h == player.Y) continue;
+			if (BordMap[_w][_h] == POINT) continue;
 
-			BordMap[_h][_w] = BORD;		//	ボードの情報を更新
+			BordMap[_w][_h] = BORD;		//	ボードの情報を更新
 		}
 	}
 }
 
 void Draw()
 {
+	char get[256];
 	int _h, _w;
 
 	system("cls");								//	画面をクリア
 
-	if (ClearFlag == 1) { printf("クリア!!!\n次のレベルに行くには？"); return; }
+	//	ゲームクリア時
+	if (ClearFlag == 1) { 
+		
+		printf("クリア!!!\nもう一度プレイするには「r」キーを押してください\nそれ以外のキーを入力すると終了します"); 
+		
+		scanf("%s", get);
+		if (get[0]=='r')
+		{
+			ClearFlag = 0;	//	再開
+		}
+		else
+		{
+			exit(0);		//	終了
+		}
+	}
 
 	for (_h = 0; _h < HEIGHT; _h++)
 	{
 		for (_w = 0; _w < WIDTH; _w++)
 		{
-			printf("%2c", BordMap[_h][_w]);		//	ボードを描画
+			printf("%2c", BordMap[_w][_h]);		//	ボードを描画
 		}
 		printf("\n");
 	}
